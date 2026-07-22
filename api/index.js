@@ -3,6 +3,17 @@ const cors = require('cors');
 const repo = require('./repository');
 const { drawTeams, computeStandings } = require('./draw');
 
+// Last-resort logging: if something throws or rejects outside of any
+// route's promise chain, log it with full detail before the process goes
+// down, so Vercel's runtime logs show the real cause instead of just
+// "FUNCTION_INVOCATION_FAILED".
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason && reason.stack ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err && err.stack ? err.stack : err);
+});
+
 const app = express();
 app.use(cors());
 
@@ -192,7 +203,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 // Central error handler for anything thrown in the async routes above.
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error('Erro na rota', req.method, req.path, ':', err && err.stack ? err.stack : err);
   res.status(500).json({ error: 'Erro interno no servidor.' });
 });
 

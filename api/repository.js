@@ -80,29 +80,52 @@ async function deletePlayer(id) {
 // ---------- Draw (teams + schedule) ----------
 async function saveDraw(teams, matches) {
   const db = await getDb();
-  run(db, 'DELETE FROM team_players');
-  run(db, 'DELETE FROM teams');
-  run(db, 'DELETE FROM matches');
 
-  teams.forEach((t) => {
-    run(db, 'INSERT INTO teams (id, name) VALUES (?, ?)', [t.id, t.name]);
-    t.playerIds.forEach((pid) => {
-      run(db, 'INSERT INTO team_players (team_id, player_id) VALUES (?, ?)', [t.id, pid]);
+  try {
+    db.run('BEGIN TRANSACTION');
+    db.run('DELETE FROM team_players');
+    db.run('DELETE FROM teams');
+    db.run('DELETE FROM matches');
+
+    const teamStmt = db.prepare('INSERT INTO teams (id, name) VALUES (?, ?)');
+    teams.forEach((t) => {
+      teamStmt.run([t.id, t.name]);
     });
-  });
+    teamStmt.free();
 
-  matches.forEach((m) => {
-    run(
-      db,
-      'INSERT INTO matches (id, order_num, team_a_id, team_b_id, gols_a, gols_b, finished) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [m.id, m.order, m.teamAId, m.teamBId, m.golsA, m.golsB, m.finished ? 1 : 0]
+    const teamPlayerStmt = db.prepare(
+      'INSERT INTO team_players (team_id, player_id) VALUES (?, ?)'
     );
-  });
+    teams.forEach((t) => {
+      t.playerIds.forEach((pid) => {
+        teamPlayerStmt.run([t.id, pid]);
+      });
+    });
+    teamPlayerStmt.free();
 
-  run(db, 'INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [
-    'drawnAt',
-    new Date().toISOString(),
-  ]);
+    const matchStmt = db.prepare(
+      'INSERT INTO matches (id, order_num, team_a_id, team_b_id, gols_a, gols_b, finished) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    matches.forEach((m) => {
+      matchStmt.run([m.id, m.order, m.teamAId, m.teamBId, m.golsA, m.golsB, m.finished ? 1 : 0]);
+    });
+    matchStmt.free();
+
+    db.run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', [
+      'drawnAt',
+      new Date().toISOString(),
+    ]);
+
+    db.run('COMMIT');
+  } catch (err) {
+    try {
+      db.run('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Falha ao reverter transação do sorteio:', rollbackErr);
+    }
+    console.error('Falha ao salvar o sorteio:', err && err.stack ? err.stack : err);
+    throw err;
+  }
   persist(db);
 }
 
