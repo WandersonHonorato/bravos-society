@@ -73,26 +73,49 @@ Acesse `http://localhost:5173`.
 
 ## Deploy no Vercel
 
-O projeto já está pronto para deploy, com a API Express rodando como função
-serverless e o React como build estático, tudo servido no mesmo domínio.
+O projeto já está pronto para deploy, com a API Express rodando como
+**Vercel Function** (detectada automaticamente a partir do arquivo
+`api/index.js`) e o React buildado como site estático — usando a
+configuração moderna e recomendada pela própria Vercel para esse tipo de
+monorepo (mais simples e confiável do que a antiga `builds`/`routes`).
+
+O `vercel.json` da raiz faz o seguinte:
+
+```json
+{
+  "version": 2,
+  "installCommand": "npm install --prefix client && npm install --prefix api",
+  "buildCommand": "npm run build --prefix client",
+  "outputDirectory": "client/dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "api/node_modules/sql.js/dist/sql-wasm.wasm"
+    }
+  },
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api" }]
+}
+```
+
+- `installCommand` instala as dependências da API e do frontend.
+- `buildCommand` / `outputDirectory` fazem só o build do React (a API não
+  precisa de build — o Vercel detecta e empacota `api/index.js`
+  automaticamente como função, por estar dentro da pasta `api/`).
+- `rewrites` manda todo `/api/*` para essa função, preservando a URL
+  original — é assim que o Express, por dentro, continua enxergando cada
+  rota (`/api/players`, `/api/draw`, etc.) normalmente.
+- `functions.includeFiles` garante que o binário `.wasm` do `sql.js`
+  (usado pelo SQLite) vá junto no pacote da função.
 
 1. Suba este repositório no GitHub.
 2. No Vercel, clique em **New Project** e importe o repositório.
-3. O `vercel.json` na raiz já configura tudo — não é necessário alterar o
-   "Framework Preset" nem os comandos de build manualmente. Só confira,
-   nas configurações do projeto:
-   - **Root Directory**: deve ficar em branco / apontando para a raiz do
-     repositório (não para `client` nem `api`).
-   - **Framework Preset**: pode deixar como "Other" — o `vercel.json` já
-     cuida do build do front e da API.
+3. Nas configurações do projeto:
+   - **Root Directory**: em branco / raiz do repositório.
+   - **Framework Preset**: pode deixar "Other" — o `vercel.json` cuida de
+     tudo.
+   - **Build and Output Settings**: pode deixar os campos em branco (o
+     texto cinza ali é só um exemplo/placeholder) — o `vercel.json` na
+     raiz sobrescreve esses campos automaticamente.
 4. Clique em **Deploy**.
-
-> Se aparecer **404: NOT_FOUND** na página inicial depois do deploy, é
-> quase sempre porque as rotas do `vercel.json` não têm a fase
-> `{ "handle": "filesystem" }` antes do fallback — sem ela, o Vercel para
-> de servir os arquivos estáticos automaticamente e a rota `/` cai num
-> caminho que não existe. Esse arquivo já vem com a correção; só
-> reimplante se algum dia editar o `vercel.json` manualmente.
 
 Ou via CLI, na raiz do projeto:
 
