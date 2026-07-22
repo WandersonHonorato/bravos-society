@@ -79,8 +79,20 @@ serverless e o React como build estático, tudo servido no mesmo domínio.
 1. Suba este repositório no GitHub.
 2. No Vercel, clique em **New Project** e importe o repositório.
 3. O `vercel.json` na raiz já configura tudo — não é necessário alterar o
-   "Framework Preset" nem os comandos de build manualmente.
+   "Framework Preset" nem os comandos de build manualmente. Só confira,
+   nas configurações do projeto:
+   - **Root Directory**: deve ficar em branco / apontando para a raiz do
+     repositório (não para `client` nem `api`).
+   - **Framework Preset**: pode deixar como "Other" — o `vercel.json` já
+     cuida do build do front e da API.
 4. Clique em **Deploy**.
+
+> Se aparecer **404: NOT_FOUND** na página inicial depois do deploy, é
+> quase sempre porque as rotas do `vercel.json` não têm a fase
+> `{ "handle": "filesystem" }` antes do fallback — sem ela, o Vercel para
+> de servir os arquivos estáticos automaticamente e a rota `/` cai num
+> caminho que não existe. Esse arquivo já vem com a correção; só
+> reimplante se algum dia editar o `vercel.json` manualmente.
 
 Ou via CLI, na raiz do projeto:
 
