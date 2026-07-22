@@ -1,0 +1,12 @@
+{
+  "name": "bravos-racha",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de gestao do racha de futebol society Bravo's",
+  "scripts": {
+    "install:all": "npm install --prefix api && npm install --prefix client",
+    "dev:api": "npm run dev --prefix api",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm install --prefix client && npm run build --prefix client"
+  }
+}
