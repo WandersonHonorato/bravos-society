@@ -5,7 +5,22 @@ const { drawTeams, computeStandings } = require('./draw');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+
+// Vercel's Node.js runtime automatically parses JSON request bodies before
+// Express ever sees the request. If we also run express.json() on top of
+// that, it tries to read the (already-drained) request stream a second
+// time, which hangs until the function times out — this is what was
+// causing "Erro inesperado ao falar com o servidor" on every POST (sortear,
+// cadastrar jogador, atualizar placar) once deployed, while GETs worked
+// fine. So: if Vercel already handed us a parsed object, use it as-is;
+// otherwise (local `node server.js`, `vercel dev`, etc.) let Express parse
+// it normally.
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 
 // Wraps async route handlers so thrown/rejected errors reach Express's
 // error handler instead of crashing the process.
