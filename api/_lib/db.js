@@ -5,7 +5,7 @@ const initSqlJs = require('sql.js');
 // On Vercel only /tmp is writable, and it's wiped whenever a serverless
 // instance is recycled. Locally we keep the .sqlite file next to the
 // project so it survives restarts.
-const DATA_DIR = process.env.VERCEL ? '/tmp' : path.join(__dirname, 'data');
+const DATA_DIR = process.env.VERCEL ? '/tmp' : path.join(__dirname, '..', 'data');
 const DB_FILE = path.join(DATA_DIR, 'bravos.sqlite');
 
 const SCHEMA = `
@@ -53,7 +53,7 @@ let dbPromise = null;
 async function initDb() {
   ensureDir();
   const SQL = await initSqlJs({
-    locateFile: (file) => path.join(__dirname, 'node_modules', 'sql.js', 'dist', file),
+    locateFile: (file) => path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file),
   });
 
   let db;

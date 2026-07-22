@@ -11,12 +11,14 @@ placar e classificação final com Campeão, Vice, 3º lugar e o troféu
 ```
 bravos/
 ├── api/            → Backend em Express (rotas em /api/*)
-│   ├── index.js       → App Express com todas as rotas
-│   ├── draw.js        → Lógica de sorteio balanceado e tabela de jogos
-│   ├── db.js          → Conexão com o banco SQLite (via sql.js/WASM)
-│   ├── repository.js  → Funções de CRUD (players, teams, matches) em SQL
-│   ├── data/          → Onde o arquivo bravos.sqlite fica salvo localmente
-│   └── server.js      → Ponto de entrada para rodar localmente
+│   ├── index.js       → App Express com todas as rotas (a única "função" real)
+│   ├── _lib/          → Lógica interna — o prefixo "_" garante que a Vercel
+│   │   │                NÃO trate esses arquivos como rotas próprias
+│   │   ├── draw.js       → Lógica de sorteio balanceado e tabela de jogos
+│   │   ├── db.js         → Conexão com o banco SQLite (via sql.js/WASM)
+│   │   ├── repository.js → Funções de CRUD (players, teams, matches) em SQL
+│   │   └── dev-server.js → Ponto de entrada para rodar localmente
+│   └── data/          → Onde o arquivo bravos.sqlite fica salvo localmente
 ├── client/         → Frontend em React (Vite)
 │   └── src/
 │       ├── App.jsx
@@ -123,6 +125,26 @@ Ou via CLI, na raiz do projeto:
 npm i -g vercel
 vercel
 ```
+
+### 🐛 Por que arquivos soltos dentro de `api/` viram rotas quebradas
+
+A Vercel transforma **qualquer arquivo `.js` colocado direto dentro da
+pasta `api/`** numa função própria, acessível por uma URL com o mesmo nome
+do arquivo — mesmo que esse arquivo só exporte funções auxiliares, sem
+nenhuma rota de verdade. Foi exatamente isso que quebrou o sorteio numa
+implantação anterior deste projeto: existia um `api/draw.js` com apenas
+funções auxiliares, e a Vercel tentou tratá-lo como o handler de
+`/api/draw` (que colide com a rota que o app realmente usa), travando com
+`FUNCTION_INVOCATION_FAILED` porque esse arquivo não exporta uma função
+de requisição válida.
+
+A correção — e é assim que a própria Vercel recomenda — foi mover toda a
+lógica auxiliar (`db.js`, `draw.js`, `repository.js`, o servidor de
+desenvolvimento local) para dentro de `api/_lib/`. Arquivos e pastas cujo
+nome começa com `_` são ignorados pela Vercel na hora de criar funções,
+então só `api/index.js` (o app Express de verdade) vira uma função. Se um
+dia adicionar um novo arquivo de lógica interna dentro de `api/`, sempre
+coloque dentro de `_lib/` — nunca solto direto em `api/`.
 
 ### 🗄️ Banco de dados: SQLite via sql.js
 

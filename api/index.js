@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const repo = require('./repository');
-const { drawTeams, computeStandings } = require('./draw');
+const repo = require('./_lib/repository');
+const { drawTeams, computeStandings } = require('./_lib/draw');
 
 // Last-resort logging: if something throws or rejects outside of any
 // route's promise chain, log it with full detail before the process goes
